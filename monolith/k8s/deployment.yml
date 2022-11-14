@@ -14,9 +14,19 @@ spec:
       labels:
         app: monolith
     spec:
+      volumes:
+      - name: google-cloud-key
+        secret:
+          secretName: spanner-key
       containers:
       - name: monolith
-        image: gcr.io/<PROJECT_ID>/monolith:1.0.0
+        image: gcr.io/<PROJECT ID>/monolith:1.0.0
+        volumeMounts:
+        - name: google-cloud-key
+          mountPath: /var/secrets/google
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /var/secrets/google/key.json
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
