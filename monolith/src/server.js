@@ -18,28 +18,48 @@ const path = require("path");
 const app = express();
 const port = process.env.PORT || 8080;
 
-//Load orders and products for pseudo database
-const orders = require("../data/orders.json").orders;
-const products = require("../data/products.json").products;
+// Configures the Cloud Spanner client
+const {Spanner} = require('@google-cloud/spanner');
+const spanner = new Spanner({projectId: 'span-cloud-testing'});
+const instance = spanner.instance('thiagotnunes-test-instance');
+const database = instance.database('gke');
 
 //Serve website
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 //Get all products
-app.get("/service/products", (req, res) => res.json(products));
+app.get("/service/products", async (req, res) => {
+  const [rows] = await database.run("SELECT * FROM products");
+  res.send(rows);
+});
 
 //Get products by ID
-app.get("/service/products/:id", (req, res) =>
-  res.json(products.find((product) => product.id === req.params.id))
-);
+app.get("/service/products/:id", async (req, res) => {
+  const id = req.params.id;
+  const query = {
+    sql: "SELECT * FROM products WHERE id = @id",
+    params: { id: id }
+  };
+  const rows = await database.run(query);
+  res.send(rows);
+});
 
 //Get all orders
-app.get("/service/orders", (req, res) => res.json(orders));
+app.get("/service/orders", async (req, res) => {
+  const [rows] = await database.run("SELECT * FROM orders");
+  res.send(rows);
+});
 
 //Get orders by ID
-app.get("/service/orders/:id", (req, res) =>
-  res.json(orders.find((order) => order.id === req.params.id))
-);
+app.get("/service/orders/:id", async (req, res) => {
+  const id = req.params.id;
+  const query = {
+    sql: "SELECT * FROM orders WHERE id = @id",
+    params: { id: id }
+  };
+  const [rows] = await database.run(query);
+  res.send(rows[0]);
+});
 
 //Client side routing fix on page refresh or direct browsing to non-root directory
 app.get("/*", (req, res) => {
